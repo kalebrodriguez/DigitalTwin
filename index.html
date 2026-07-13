@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DigitalTwin — Peace of mind for families</title>
+<style>
+  :root {
+    --bg: #f4f1ec;
+    --ink: #2b2b33;
+    --soft: #6b6b76;
+    --brand: #4f7cac;
+    --brand-dark: #3a5d84;
+    --good: #3d8f5f;
+    --good-bg: #e4f3ea;
+    --warn: #c94f3d;
+    --warn-bg: #fbe9e6;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  header {
+    text-align: center;
+    padding: 28px 16px 8px;
+  }
+  header h1 { font-size: 28px; letter-spacing: -0.5px; }
+  header h1 span { color: var(--brand); }
+  header p { color: var(--soft); margin-top: 4px; font-size: 15px; }
+
+  .stage {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 48px;
+    flex-wrap: wrap;
+    padding: 24px 16px 8px;
+  }
+  .device-wrap { text-align: center; }
+  .device-label {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--soft);
+    margin-bottom: 10px;
+  }
+  .phone {
+    width: 340px;
+    height: 620px;
+    background: #111;
+    border-radius: 44px;
+    padding: 12px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    position: relative;
+  }
+  .screen {
+    background: var(--card);
+    width: 100%;
+    height: 100%;
+    border-radius: 34px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .notch {
+    position: absolute;
+    top: 12px; left: 50%;
+    transform: translateX(-50%);
+    width: 110px; height: 26px;
+    background: #111;
+    border-radius: 14px;
+    z-index: 5;
+  }
+
+  /* ---------- Patient screen ---------- */
+  .patient-screen { background: #fdfcf9; }
+  .patient-top {
+    padding: 52px 22px 10px;
+    text-align: center;
+  }
+  .patient-date { font-size: 15px; color: var(--soft); }
+  .patient-greeting { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  .task-card {
+    margin: 14px 18px;
+    background: #fff;
+    border: 1px solid #eee6d9;
+    border-radius: 24px;
+    padding: 26px 20px 22px;
+    text-align: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: opacity .4s;
+  }
+  .task-emoji { font-size: 64px; }
+  .task-title { font-size: 26px; font-weight: 800; margin-top: 12px; line-height: 1.25; }
+  .task-sub { font-size: 16px; color: var(--soft); margin-top: 8px; }
+  .voice-hint {
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--brand);
+    font-style: italic;
+  }
+  .big-btn {
+    display: block;
+    width: calc(100% - 36px);
+    margin: 0 18px 12px;
+    padding: 20px;
+    font-size: 22px;
+    font-weight: 800;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    background: var(--good);
+    color: #fff;
+    transition: transform .1s;
+  }
+  .big-btn:active { transform: scale(0.97); }
+  .later-btn {
+    background: none;
+    border: none;
+    color: var(--soft);
+    font-size: 15px;
+    margin: 0 auto 20px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .patient-done {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+  }
+  .patient-done .task-emoji { font-size: 72px; }
+  .patient-done h2 { font-size: 26px; margin-top: 14px; }
+  .patient-done p { color: var(--soft); margin-top: 8px; font-size: 16px; }
+
+  /* ---------- Family screen ---------- */
+  .family-top {
+    padding: 52px 20px 12px;
+    background: linear-gradient(180deg, var(--brand) 0%, var(--brand-dark) 100%);
+    color: #fff;
+  }
+  .family-app-name { font-size: 13px; opacity: .85; letter-spacing: 1px; text-transform: uppercase; }
+  .family-title { font-size: 21px; font-weight: 800; margin-top: 4px; }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 10px;
+    background: rgba(255,255,255,0.16);
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #7be29b;
+  }
+  .status-dot.alert { background: #ffb0a3; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .4; } }
+
+  .feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 14px 20px;
+    background: #f7f8fa;
+  }
+  .feed-day { font-size: 12px; font-weight: 700; color: var(--soft); text-transform: uppercase; letter-spacing: 1px; margin: 4px 4px 10px; }
+  .notif {
+    background: #fff;
+    border-radius: 16px;
+    padding: 13px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    animation: slideIn .45s ease both;
+    border-left: 4px solid transparent;
+  }
+  @keyframes slideIn {
+    from { transform: translateY(-14px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .notif.good { border-left-color: var(--good); }
+  .notif.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+  .notif.info { border-left-color: var(--brand); }
+  .notif-icon { font-size: 22px; line-height: 1.2; }
+  .notif-body { flex: 1; }
+  .notif-title { font-size: 14.5px; font-weight: 700; }
+  .notif.warn .notif-title { color: var(--warn); }
+  .notif-text { font-size: 13px; color: var(--soft); margin-top: 2px; line-height: 1.35; }
+  .notif-time { font-size: 11.5px; color: #9a9aa4; white-space: nowrap; margin-top: 2px; }
+  .notif-action {
+    margin-top: 8px;
+    display: inline-block;
+    background: var(--warn);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 7px 12px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+  }
+
+  /* ---------- Controls ---------- */
+  .controls {
+    max-width: 780px;
+    margin: 18px auto 40px;
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 22px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+    text-align: center;
+  }
+  .controls h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--soft); margin-bottom: 12px; }
+  .controls .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .ctrl-btn {
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #fff;
+  }
+  .ctrl-confirm { background: var(--good); }
+  .ctrl-miss { background: var(--warn); }
+  .ctrl-reset { background: #8a8a94; }
+  .ctrl-btn:disabled { opacity: .4; cursor: default; }
+  .controls p { font-size: 13px; color: var(--soft); margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Digital<span>Twin</span></h1>
+  <p>An AI daily companion for Mom. Real-time peace of mind for you.</p>
+</header>
+
+<div class="stage">
+  <!-- PATIENT PHONE -->
+  <div class="device-wrap">
+    <div class="device-label">Mom's device</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen patient-screen">
+        <div class="patient-top">
+          <div class="patient-date" id="patientDate">Monday, July 13</div>
+          <div class="patient-greeting">Good morning, Margaret ☀️</div>
+        </div>
+        <div class="task-card" id="taskCard">
+          <div class="task-emoji" id="taskEmoji">💊</div>
+          <div class="task-title" id="taskTitle">Time for your morning pills</div>
+          <div class="task-sub" id="taskSub">The white one and the small blue one, with a glass of water.</div>
+          <div class="voice-hint" id="voiceHint">🔊 "Margaret, it's nine o'clock — time for your morning medicine."</div>
+        </div>
+        <div class="patient-done" id="patientDone">
+          <div class="task-emoji">🌼</div>
+          <h2>All done for now!</h2>
+          <p id="doneText">Wonderful. Your family knows you're doing great.</p>
+        </div>
+        <button class="big-btn" id="confirmBtn" onclick="confirmTask()">✓ &nbsp;I did it</button>
+        <button class="later-btn" id="laterBtn" onclick="missTask()">Remind me later</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAMILY PHONE -->
+  <div class="device-wrap">
+    <div class="device-label">Daughter's phone — 1,200 miles away</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="family-top">
+          <div class="family-app-name">DigitalTwin</div>
+          <div class="family-title">Margaret's Day</div>
+          <div class="status-pill" id="statusPill">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Everything on track</span>
+          </div>
+        </div>
+        <div class="feed" id="feed">
+          <div class="feed-day">Today</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <h3>Demo controls</h3>
+  <div class="row">
+    <button class="ctrl-btn ctrl-confirm" onclick="confirmTask()">Mom confirms task</button>
+    <button class="ctrl-btn ctrl-miss" onclick="missTask()">Mom misses task (30 min pass)</button>
+    <button class="ctrl-btn ctrl-reset" onclick="resetDemo()">Restart demo</button>
+  </div>
+  <p>Walk through the day: each task appears on Mom's screen. Confirmations — and missed tasks — reach the family instantly.</p>
+</div>
+
+<script>
+const tasks = [
+  { emoji: "💊", title: "Time for your morning pills", sub: "The white one and the small blue one, with a glass of water.",
+    hint: "🔊 “Margaret, it's nine o'clock — time for your morning medicine.”",
+    time: "9:02 AM", label: "Morning medication",
+    goodTitle: "Medication taken ✓", goodText: "Mom confirmed her morning pills at 9:02 AM.",
+    warnTitle: "Missed: morning medication", warnText: "Mom hasn't confirmed her 9:00 AM pills after 30 minutes and two gentle reminders." },
+  { emoji: "🐕", title: "Time to feed Biscuit", sub: "One scoop of the brown kibble, in his blue bowl by the door.",
+    hint: "🔊 “Biscuit is probably hungry! One scoop in the blue bowl.”",
+    time: "10:15 AM", label: "Feed the dog",
+    goodTitle: "Biscuit is fed ✓", goodText: "Mom confirmed feeding Biscuit at 10:15 AM.",
+    warnTitle: "Missed: feeding Biscuit", warnText: "No confirmation that Biscuit was fed this morning." },
+  { emoji: "🥪", title: "Lunchtime, Margaret", sub: "There's a sandwich ready in the fridge, on the middle shelf.",
+    hint: "🔊 “It's noon — your sandwich is waiting in the fridge.”",
+    time: "12:04 PM", label: "Lunch",
+    goodTitle: "Lunch eaten ✓", goodText: "Mom confirmed she had lunch at 12:04 PM.",
+    warnTitle: "Missed: lunch", warnText: "Mom hasn't confirmed lunch after reminders at 12:00 and 12:20." },
+  { emoji: "📞", title: "Call your daughter Sarah", sub: "Just tap the button and I'll dial her for you.",
+    hint: "🔊 “Sarah would love to hear from you. Shall I call her?”",
+    time: "3:30 PM", label: "Family call",
+    goodTitle: "Called Sarah ✓", goodText: "Mom and Sarah talked for 12 minutes this afternoon. ❤️",
+    warnTitle: "Missed: afternoon call", warnText: "Mom didn't get to her call with Sarah today." }
+];
+
+let idx = 0;
+let finished = false;
+
+const el = id => document.getElementById(id);
+
+function showTask() {
+  const t = tasks[idx];
+  el("taskEmoji").textContent = t.emoji;
+  el("taskTitle").textContent = t.title;
+  el("taskSub").textContent = t.sub;
+  el("voiceHint").textContent = t.hint;
+  el("taskCard").style.display = "flex";
+  el("patientDone").style.display = "none";
+  el("confirmBtn").style.display = "block";
+  el("laterBtn").style.display = "block";
+}
+
+function addNotif(kind, icon, title, text, time, withAction) {
+  const feed = el("feed");
+  const n = document.createElement("div");
+  n.className = "notif " + kind;
+  n.innerHTML = `
+    <div class="notif-icon">${icon}</div>
+    <div class="notif-body">
+      <div class="notif-title">${title}</div>
+      <div class="notif-text">${text}</div>
+      ${withAction ? '<button class="notif-action" onclick="alertHandled(this)">📞 Call Mom now</button>' : ''}
+    </div>
+    <div class="notif-time">${time}</div>`;
+  feed.insertBefore(n, feed.children[1] || null);
+}
+
+function setStatus(ok, text) {
+  el("statusDot").className = "status-dot" + (ok ? "" : " alert");
+  el("statusText").textContent = text;
+}
+
+function advance() {
+  idx++;
+  if (idx >= tasks.length) {
+    finished = true;
+    el("taskCard").style.display = "none";
+    el("confirmBtn").style.display = "none";
+    el("laterBtn").style.display = "none";
+    el("patientDone").style.display = "flex";
+    el("doneText").textContent = "That's everything for today, Margaret. Rest well. 🌙";
+    setTimeout(() => addNotif("info", "🌙", "Daily summary ready",
+      "Margaret completed her day. Tap to see the full summary and trends.", "8:00 PM", false), 900);
+  } else {
+    setTimeout(showTask, 900);
+  }
+}
+
+function confirmTask() {
+  if (finished) return;
+  const t = tasks[idx];
+  el("taskCard").style.display = "none";
+  el("confirmBtn").style.display = "none";
+  el("laterBtn").style.display = "none";
+  el("patientDone").style.display = "flex";
+  el("doneText").textContent = "Wonderful. Your family knows you're doing great.";
+  setStatus(true, "Everything on track");
+  setTimeout(() => addNotif("good", "✅", t.goodTitle, t.goodText, t.time, false), 600);
+  advance();
+}
+
+function missTask() {
+  if (finished) return;
+  const t = tasks[idx];
+  setStatus(false, "Needs attention");
+  setTimeout(() => addNotif("warn", "⚠️", t.warnTitle, t.warnText, t.time, true), 600);
+  el("taskCard").style.display = "none";
+  el("confirmBtn").style.display = "none";
+  el("laterBtn").style.display = "none";
+  el("patientDone").style.display = "flex";
+  el("doneText").textContent = "That's okay, Margaret. I'll let Sarah know so she can help.";
+  advance();
+}
+
+function alertHandled(btn) {
+  const body = btn.parentElement;
+  btn.remove();
+  const note = document.createElement("div");
+  note.className = "notif-text";
+  note.innerHTML = "<b style='color:var(--good)'>✓ You called Mom — she's okay.</b> She took her pills while you were on the phone.";
+  body.appendChild(note);
+  setStatus(true, "Everything on track");
+}
+
+function resetDemo() {
+  idx = 0;
+  finished = false;
+  el("feed").innerHTML = '<div class="feed-day">Today</div>';
+  setStatus(true, "Everything on track");
+  showTask();
+  setTimeout(() => addNotif("info", "☀️", "Margaret is up and about",
+    "Morning routine started on schedule at 8:45 AM.", "8:45 AM", false), 400);
+}
+
+resetDemo();
+</script>
+</body>
+</html>
