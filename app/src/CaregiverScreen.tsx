@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, radius, space, type } from "./theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { colors, fonts, radius, space, type, shadow } from "./theme";
+import DayRibbon from "./DayRibbon";
 import {
   FeedEvent,
   PATIENT_NAME,
@@ -12,7 +14,8 @@ import {
   subscribe,
 } from "./store";
 
-// Caregiver mode: live status, digital twin scores, and the day's timeline.
+// Caregiver mode: answers "Is my loved one okay?" at a glance,
+// then shows the day as a timeline.
 
 type Props = { onExit: () => void };
 
@@ -25,145 +28,216 @@ export default function CaregiverScreen({ onExit }: Props) {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable onPress={onExit} hitSlop={16}>
-          <Text style={styles.exitText}>‹ Exit</Text>
-        </Pressable>
-        <Text style={styles.appName}>DIGITALTWIN</Text>
-        <Text style={styles.title}>{PATIENT_NAME}'s Day</Text>
-        <View style={[styles.pill, ok ? styles.pillOk : styles.pillAlert]}>
-          <View style={[styles.dot, ok ? styles.dotOk : styles.dotAlert]} />
-          <Text style={styles.pillText}>
-            {ok ? "Everything on track" : "Needs attention"}
-          </Text>
+      <LinearGradient
+        colors={[colors.sky, "#4E90E8"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
+          <Pressable onPress={onExit} hitSlop={16}>
+            <Text style={styles.exitText}>‹ Exit</Text>
+          </Pressable>
+          <Text style={styles.appName}>DIGITALTWIN</Text>
+          <View style={{ width: 48 }} />
         </View>
-        <View style={styles.scores}>
-          <ScoreCard label="Tasks done" value={`${completedCount()}/${TASKS.length}`} />
-          <ScoreCard label="Adherence" value={`${adherencePct()}%`} />
+
+        <View style={styles.patientRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>M</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>{PATIENT_NAME}'s Day</Text>
+            <Text style={styles.subtitle}>Your mom · Tampa, FL</Text>
+          </View>
         </View>
-      </View>
+
+        <View style={[styles.statusCard, !ok && styles.statusCardAlert]}>
+          <Text style={styles.statusIcon}>{ok ? "💙" : "⚠️"}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.statusTitle, !ok && { color: "#fff" }]}>
+              {ok ? "Mom is okay" : "Mom needs a check-in"}
+            </Text>
+            <Text style={[styles.statusSub, !ok && { color: "rgba(255,255,255,0.9)" }]}>
+              {ok
+                ? "Everything on track so far today."
+                : "A task was missed — see below."}
+            </Text>
+          </View>
+          <View style={styles.statusStats}>
+            <Text style={[styles.statusStatNum, !ok && { color: "#fff" }]}>
+              {completedCount()}/{TASKS.length}
+            </Text>
+            <Text style={[styles.statusStatLabel, !ok && { color: "rgba(255,255,255,0.9)" }]}>
+              tasks · {adherencePct()}%
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.ribbonWrap}>
+          <DayRibbon light />
+        </View>
+      </LinearGradient>
 
       <FlatList
         data={feed}
         keyExtractor={(e) => e.id}
         contentContainerStyle={styles.feed}
-        ListHeaderComponent={<Text style={styles.feedDay}>TODAY</Text>}
-        renderItem={({ item }) => <FeedRow event={item} />}
+        ListHeaderComponent={<Text style={styles.feedDay}>Today's timeline</Text>}
+        renderItem={({ item, index }) => (
+          <FeedRow event={item} isLast={index === feed.length - 1} />
+        )}
       />
     </View>
   );
 }
 
-function ScoreCard({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.scoreCard}>
-      <Text style={styles.scoreValue}>{value}</Text>
-      <Text style={styles.scoreLabel}>{label}</Text>
-    </View>
-  );
-}
-
-function FeedRow({ event }: { event: FeedEvent }) {
-  const border =
+function FeedRow({ event, isLast }: { event: FeedEvent; isLast: boolean }) {
+  const tone =
     event.kind === "good"
-      ? colors.success
+      ? { dot: colors.sage, tint: colors.cloud, title: colors.ink }
       : event.kind === "warn"
-      ? colors.danger
-      : colors.primary;
+      ? { dot: colors.ember, tint: colors.emberTint, title: colors.ember }
+      : { dot: colors.sky, tint: colors.cloud, title: colors.ink };
+
   return (
-    <View
-      style={[
-        styles.notif,
-        { borderLeftColor: border },
-        event.kind === "warn" && { backgroundColor: colors.dangerTint },
-      ]}
-    >
-      <Text style={styles.notifIcon}>{event.icon}</Text>
-      <View style={styles.notifBody}>
-        <Text
-          style={[styles.notifTitle, event.kind === "warn" && { color: colors.danger }]}
-        >
-          {event.title}
-        </Text>
+    <View style={styles.rowWrap}>
+      <View style={styles.rail}>
+        <View style={[styles.railDot, { backgroundColor: tone.dot }]} />
+        {!isLast && <View style={styles.railLine} />}
+      </View>
+      <View style={[styles.notif, shadow.card, { backgroundColor: tone.tint }]}>
+        <View style={styles.notifHeader}>
+          <Text style={styles.notifIcon}>{event.icon}</Text>
+          <Text style={[styles.notifTitle, { color: tone.title }]} numberOfLines={2}>
+            {event.title}
+          </Text>
+          <Text style={styles.notifTime}>{event.time}</Text>
+        </View>
         <Text style={styles.notifText}>{event.text}</Text>
         {event.needsAction && (
           <Pressable style={styles.actionBtn} onPress={() => resolveAlert(event.id)}>
-            <Text style={styles.actionText}>📞  Call Mom now</Text>
+            <Text style={styles.actionText}>📞   Call Mom now</Text>
           </Pressable>
         )}
       </View>
-      <Text style={styles.notifTime}>{event.time}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, backgroundColor: colors.mist },
   header: {
-    backgroundColor: colors.primary,
     paddingTop: 56,
     paddingHorizontal: space.sm,
-    paddingBottom: space.sm,
-    borderBottomLeftRadius: radius,
-    borderBottomRightRadius: radius,
+    paddingBottom: space.md,
+    borderBottomLeftRadius: radius + 8,
+    borderBottomRightRadius: radius + 8,
   },
-  exitText: { fontSize: type.body, color: "#fff", marginBottom: 4 },
-  appName: { fontSize: 15, color: "#EAF3FF", letterSpacing: 2, fontWeight: "600" },
-  title: { fontSize: type.title, fontWeight: "800", color: "#fff", marginTop: 2 },
-  pill: {
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  exitText: { fontFamily: fonts.semibold, fontSize: type.body, color: "#fff" },
+  appName: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: "rgba(255,255,255,0.9)",
+    letterSpacing: 3,
+  },
+  patientRow: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
-    marginTop: space.xs,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 999,
+    marginTop: space.sm,
   },
-  pillOk: { backgroundColor: "rgba(255,255,255,0.25)" },
-  pillAlert: { backgroundColor: colors.danger },
-  dot: { width: 10, height: 10, borderRadius: 5, marginRight: 7 },
-  dotOk: { backgroundColor: "#7BE29B" },
-  dotAlert: { backgroundColor: "#fff" },
-  pillText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  scores: { flexDirection: "row", gap: space.xs, marginTop: space.sm },
-  scoreCard: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderRadius: radius - 8,
-    padding: space.sm,
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    borderWidth: 2,
+    borderColor: "#fff",
     alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
-  scoreValue: { fontSize: type.title, fontWeight: "800", color: "#fff" },
-  scoreLabel: { fontSize: 15, color: "#EAF3FF", marginTop: 2 },
-  feed: { padding: space.sm },
-  feedDay: {
-    fontSize: 15,
-    fontWeight: "700",
+  avatarText: { fontFamily: fonts.display, fontSize: 26, color: "#fff" },
+  title: { fontFamily: fonts.display, fontSize: 28, color: "#fff" },
+  subtitle: {
+    fontFamily: fonts.semibold,
+    fontSize: type.caption,
+    color: "rgba(255,255,255,0.9)",
+    marginTop: 2,
+  },
+  statusCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.cloud,
+    borderRadius: radius - 4,
+    padding: space.sm,
+    marginTop: space.sm,
+  },
+  statusCardAlert: { backgroundColor: colors.ember },
+  statusIcon: { fontSize: 28, marginRight: 12 },
+  statusTitle: { fontFamily: fonts.bold, fontSize: 20, color: colors.ink },
+  statusSub: {
+    fontFamily: fonts.body,
+    fontSize: type.caption,
     color: colors.soft,
-    letterSpacing: 1,
-    marginBottom: space.xs,
+    marginTop: 2,
   },
+  statusStats: { alignItems: "flex-end", marginLeft: 8 },
+  statusStatNum: { fontFamily: fonts.bold, fontSize: 22, color: colors.deep },
+  statusStatLabel: { fontFamily: fonts.semibold, fontSize: 12, color: colors.soft },
+  ribbonWrap: { marginTop: space.sm },
+  feed: { padding: space.sm, paddingBottom: space.lg },
+  feedDay: {
+    fontFamily: fonts.bold,
+    fontSize: type.caption,
+    color: colors.soft,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    marginBottom: space.xs,
+    marginLeft: 30,
+  },
+  rowWrap: { flexDirection: "row" },
+  rail: { width: 22, alignItems: "center" },
+  railDot: { width: 12, height: 12, borderRadius: 6, marginTop: 22 },
+  railLine: { flex: 1, width: 2, backgroundColor: colors.line, marginTop: 4 },
   notif: {
-    flexDirection: "row",
-    backgroundColor: colors.card,
-    borderRadius: radius - 8,
-    borderLeftWidth: 4,
+    flex: 1,
+    borderRadius: radius - 6,
     padding: space.sm,
     marginBottom: space.xs,
-    alignItems: "flex-start",
+    marginLeft: 8,
   },
-  notifIcon: { fontSize: 22, marginRight: 10 },
-  notifBody: { flex: 1 },
-  notifTitle: { fontSize: 16, fontWeight: "700", color: colors.ink },
-  notifText: { fontSize: 15, color: colors.soft, marginTop: 2, lineHeight: 21 },
-  notifTime: { fontSize: 14, color: colors.soft, marginLeft: 8 },
+  notifHeader: { flexDirection: "row", alignItems: "center" },
+  notifIcon: { fontSize: 20, marginRight: 8 },
+  notifTitle: { flex: 1, fontFamily: fonts.bold, fontSize: 16 },
+  notifTime: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    color: colors.soft,
+    marginLeft: 8,
+  },
+  notifText: {
+    fontFamily: fonts.body,
+    fontSize: type.caption,
+    color: colors.soft,
+    lineHeight: 21,
+    marginTop: 6,
+    marginLeft: 28,
+  },
   actionBtn: {
     alignSelf: "flex-start",
-    backgroundColor: colors.danger,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginTop: space.xs,
+    backgroundColor: colors.ember,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    marginTop: 10,
+    marginLeft: 28,
+    ...shadow.button,
   },
-  actionText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  actionText: { fontFamily: fonts.bold, fontSize: type.caption, color: "#fff" },
 });
