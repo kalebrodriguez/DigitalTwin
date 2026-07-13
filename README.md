@@ -1,15 +1,16 @@
 # DigitalTwin
 
-**An AI daily companion for Mom. Real-time peace of mind for you.**
+### Your AI Companion for Independent Aging
 
-DigitalTwin helps families caring for a loved one with Alzheimer's or another
-neurodegenerative disease. A gentle AI voice guides the patient through their
-daily routine — medication, meals, feeding the dog, calling family — and every
-confirmed (or **missed**) task reaches the family's phones instantly, capped
-off by an AI-generated summary of their day each evening.
+**DigitalTwin** is an AI-powered daily companion for people living with early-stage Alzheimer's disease and other forms of dementia, while providing caregivers with a real-time digital representation of their loved one's daily routine and wellbeing.
 
-Reminder apps talk to the patient. Care-coordination apps talk to the family.
-**Nobody closes the loop between them. We do.**
+Rather than simply reminding patients to complete tasks, DigitalTwin continuously builds a live "digital twin" of their day—tracking routines, medication adherence, meals, hydration, appointments, and wellness activities—so family members always know how their loved one is doing.
+
+Our mission is simple:
+
+> **Create a living digital twin that gives patients greater independence and gives families peace of mind.**
+
+---
 
 ## Demo
 
