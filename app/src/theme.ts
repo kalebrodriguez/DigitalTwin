@@ -10,8 +10,10 @@ export const colors = {
   cloud: "#FFFFFF",
   line: "#DCE9FB",
   sage: "#2E9E63", // done
+  sagePressed: "#25824F",
   sageTint: "#E3F5EB",
   ember: "#E4573D", // missed / alert
+  emberPressed: "#C44631",
   emberTint: "#FCEAE6",
   gold: "#F5B840", // warm accent (sun)
 };

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors, fonts, radius, buttonHeight, space, type, shadow } from "./theme";
 import DayRibbon from "./DayRibbon";
 import {
@@ -58,11 +60,12 @@ export default function PatientScreen({ onExit }: Props) {
   return (
     <View style={styles.screen}>
       <View style={styles.topBar}>
-        <Pressable onPress={onExit} hitSlop={16}>
-          <Text style={styles.exitText}>‹ Exit</Text>
+        <Pressable onPress={onExit} hitSlop={16} style={styles.exitRow}>
+          <Ionicons name="chevron-back" size={22} color={colors.soft} />
+          <Text style={styles.exitText}>Exit</Text>
         </Pressable>
         <Text style={styles.date}>Monday, July 13</Text>
-        <View style={{ width: 48 }} />
+        <View style={{ width: 64 }} />
       </View>
 
       <Text style={styles.greeting}>Good morning,{"\n"}{PATIENT_NAME} ☀️</Text>
@@ -108,16 +111,18 @@ export default function PatientScreen({ onExit }: Props) {
       {task && !interstitial ? (
         <>
           <SpringButton
-            label="✓   I did it"
-            onPress={() =>
-              swapCard("Wonderful. Your family knows you're doing great.", confirmTask)
-            }
+            label="I did it"
+            onPress={() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              swapCard("Wonderful. Your family knows you're doing great.", confirmTask);
+            }}
           />
           <Pressable
             style={styles.laterButton}
-            onPress={() =>
-              swapCard("That's okay. I'll let Sarah know so she can help.", missTask)
-            }
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+              swapCard("That's okay. I'll let Sarah know so she can help.", missTask);
+            }}
           >
             <Text style={styles.laterText}>Remind me later</Text>
           </Pressable>
@@ -131,17 +136,29 @@ export default function PatientScreen({ onExit }: Props) {
 
 function SpringButton({ label, onPress }: { label: string; onPress: () => void }) {
   const scale = useRef(new Animated.Value(1)).current;
+  const [pressed, setPressed] = useState(false);
   return (
     <Pressable
-      onPressIn={() =>
-        Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start()
-      }
-      onPressOut={() =>
-        Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start()
-      }
+      onPressIn={() => {
+        setPressed(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+        Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start();
+      }}
+      onPressOut={() => {
+        setPressed(false);
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+      }}
       onPress={onPress}
     >
-      <Animated.View style={[styles.bigButton, shadow.button, { transform: [{ scale }] }]}>
+      <Animated.View
+        style={[
+          styles.bigButton,
+          shadow.button,
+          pressed && { backgroundColor: colors.sagePressed },
+          { transform: [{ scale }] },
+        ]}
+      >
+        <Ionicons name="checkmark-circle" size={28} color="#fff" />
         <Text style={styles.bigButtonText}>{label}</Text>
       </Animated.View>
     </Pressable>
@@ -157,6 +174,7 @@ const styles = StyleSheet.create({
     paddingBottom: space.md,
   },
   topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  exitRow: { flexDirection: "row", alignItems: "center", width: 64 },
   exitText: { fontFamily: fonts.semibold, fontSize: type.body, color: colors.soft },
   date: { fontFamily: fonts.semibold, fontSize: type.caption, color: colors.soft },
   greeting: {
@@ -224,6 +242,8 @@ const styles = StyleSheet.create({
     height: buttonHeight,
     borderRadius: radius,
     backgroundColor: colors.sage,
+    flexDirection: "row",
+    gap: 10,
     alignItems: "center",
     justifyContent: "center",
   },

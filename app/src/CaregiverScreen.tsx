@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors, fonts, radius, space, type, shadow } from "./theme";
 import DayRibbon from "./DayRibbon";
 import {
@@ -35,11 +37,15 @@ export default function CaregiverScreen({ onExit }: Props) {
         style={styles.header}
       >
         <View style={styles.headerTop}>
-          <Pressable onPress={onExit} hitSlop={16}>
-            <Text style={styles.exitText}>‹ Exit</Text>
+          <Pressable onPress={onExit} hitSlop={16} style={styles.exitRow}>
+            <Ionicons name="chevron-back" size={22} color="#fff" />
+            <Text style={styles.exitText}>Exit</Text>
           </Pressable>
           <Text style={styles.appName}>DIGITALTWIN</Text>
-          <View style={{ width: 48 }} />
+          <View style={styles.bell}>
+            <Ionicons name="notifications" size={17} color="#fff" />
+            {!ok && <View style={styles.bellDot} />}
+          </View>
         </View>
 
         <View style={styles.patientRow}>
@@ -48,7 +54,14 @@ export default function CaregiverScreen({ onExit }: Props) {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{PATIENT_NAME}'s Day</Text>
-            <Text style={styles.subtitle}>Your mom · Tampa, FL</Text>
+            <View style={styles.subtitleRow}>
+              <Ionicons name="home" size={12} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.subtitle}>At home · Tampa, FL</Text>
+            </View>
+          </View>
+          <View style={styles.batteryCol}>
+            <BatteryGlyph level={82} />
+            <Text style={styles.batteryText}>82%</Text>
           </View>
         </View>
 
@@ -92,6 +105,27 @@ export default function CaregiverScreen({ onExit }: Props) {
   );
 }
 
+// Battery as a safety signal (pattern borrowed from Life360's member rows):
+// caregivers need to know Mom's device is alive, not just her tasks.
+function BatteryGlyph({ level }: { level: number }) {
+  const color = level <= 20 ? colors.ember : "#fff";
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <View style={[styles.batteryBody, { borderColor: color }]}>
+        <View
+          style={{
+            height: "100%",
+            width: `${level}%`,
+            backgroundColor: color,
+            borderRadius: 1,
+          }}
+        />
+      </View>
+      <View style={[styles.batteryTip, { backgroundColor: color }]} />
+    </View>
+  );
+}
+
 function FeedRow({ event, isLast }: { event: FeedEvent; isLast: boolean }) {
   const tone =
     event.kind === "good"
@@ -116,8 +150,18 @@ function FeedRow({ event, isLast }: { event: FeedEvent; isLast: boolean }) {
         </View>
         <Text style={styles.notifText}>{event.text}</Text>
         {event.needsAction && (
-          <Pressable style={styles.actionBtn} onPress={() => resolveAlert(event.id)}>
-            <Text style={styles.actionText}>📞   Call Mom now</Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionBtn,
+              pressed && { backgroundColor: colors.emberPressed },
+            ]}
+            onPress={() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              resolveAlert(event.id);
+            }}
+          >
+            <Ionicons name="call" size={16} color="#fff" />
+            <Text style={styles.actionText}>Call Mom now</Text>
           </Pressable>
         )}
       </View>
@@ -139,12 +183,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  exitRow: { flexDirection: "row", alignItems: "center", width: 64 },
   exitText: { fontFamily: fonts.semibold, fontSize: type.body, color: "#fff" },
   appName: {
     fontFamily: fonts.bold,
     fontSize: 13,
     color: "rgba(255,255,255,0.9)",
     letterSpacing: 3,
+  },
+  bell: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bellDot: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.ember,
+    borderWidth: 1.5,
+    borderColor: "#fff",
   },
   patientRow: {
     flexDirection: "row",
@@ -164,12 +228,23 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontFamily: fonts.display, fontSize: 26, color: "#fff" },
   title: { fontFamily: fonts.display, fontSize: 28, color: "#fff" },
+  subtitleRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
   subtitle: {
     fontFamily: fonts.semibold,
     fontSize: type.caption,
     color: "rgba(255,255,255,0.9)",
-    marginTop: 2,
   },
+  batteryCol: { alignItems: "center", gap: 2, marginLeft: 8 },
+  batteryBody: {
+    width: 24,
+    height: 12,
+    borderWidth: 1.5,
+    borderRadius: 3,
+    padding: 1.5,
+    justifyContent: "center",
+  },
+  batteryTip: { width: 2, height: 5, borderRadius: 1, marginLeft: 1 },
+  batteryText: { fontFamily: fonts.semibold, fontSize: 12, color: "#fff" },
   statusCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -230,6 +305,9 @@ const styles = StyleSheet.create({
     marginLeft: 28,
   },
   actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     alignSelf: "flex-start",
     backgroundColor: colors.ember,
     borderRadius: 14,
