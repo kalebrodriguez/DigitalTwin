@@ -12,7 +12,28 @@ Our mission is simple:
 
 ---
 
-## Demo
+## Mobile app (demo prototype)
+
+The pitch-competition app lives in [`app/`](app/) — an Expo / React Native /
+TypeScript app with two modes sharing one live demo store (no backend needed):
+
+- **Patient Mode** — one task at a time, huge text, one big "I did it" button.
+- **Caregiver Mode** — live status pill, task/adherence scores, and the day's
+  timeline. Confirm or miss a task in Patient Mode and it appears here
+  instantly; missed tasks raise a red "Call Mom now" alert.
+
+To run it:
+
+```bash
+cd app
+npm install
+npx expo start
+```
+
+Then scan the QR code with the Expo Go app on your phone. "Restart demo day"
+on the home screen resets the scripted day between rehearsals.
+
+## Web demo
 
 Open [`index.html`](index.html) in any browser — no install, no internet
 needed. It shows two phones side by side:
