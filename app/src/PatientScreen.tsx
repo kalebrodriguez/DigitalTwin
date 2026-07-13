@@ -1,13 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors, fonts, radius, buttonHeight, space, type, shadow } from "./theme";
 import DayRibbon from "./DayRibbon";
+import Waveform from "./Waveform";
 import {
   PATIENT_NAME,
+  TASKS,
   confirmTask,
   currentTask,
+  getState,
   missTask,
   subscribe,
 } from "./store";
@@ -17,6 +21,13 @@ import {
 
 type Props = { onExit: () => void };
 
+const HALO_TINTS: Record<string, string> = {
+  meds: "#EAF1FF",
+  dog: "#FBF3E4",
+  lunch: "#EFF8EC",
+  call: "#F6EFFB",
+};
+
 export default function PatientScreen({ onExit }: Props) {
   const [, force] = useState(0);
   const [interstitial, setInterstitial] = useState<string | null>(null);
@@ -25,6 +36,7 @@ export default function PatientScreen({ onExit }: Props) {
   useEffect(() => subscribe(() => force((n) => n + 1)), []);
 
   const task = currentTask();
+  const { taskIndex } = getState();
 
   const swapCard = (message: string, action: () => void) => {
     Animated.timing(cardAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(
@@ -58,17 +70,27 @@ export default function PatientScreen({ onExit }: Props) {
   };
 
   return (
-    <View style={styles.screen}>
+    <LinearGradient
+      colors={["#DCEBFF", "#F7FAFF", "#FFFFFF"]}
+      locations={[0, 0.45, 1]}
+      style={styles.screen}
+    >
       <View style={styles.topBar}>
         <Pressable onPress={onExit} hitSlop={16} style={styles.exitRow}>
           <Ionicons name="chevron-back" size={22} color={colors.soft} />
           <Text style={styles.exitText}>Exit</Text>
         </Pressable>
-        <Text style={styles.date}>Monday, July 13</Text>
-        <View style={{ width: 64 }} />
+        {task && (
+          <View style={styles.progressPill}>
+            <Text style={styles.progressText}>
+              Task {Math.min(taskIndex + 1, TASKS.length)} of {TASKS.length}
+            </Text>
+          </View>
+        )}
       </View>
 
-      <Text style={styles.greeting}>Good morning,{"\n"}{PATIENT_NAME} ☀️</Text>
+      <Text style={styles.greeting}>Good morning,{"\n"}{PATIENT_NAME}</Text>
+      <Text style={styles.date}>Monday, July 13</Text>
 
       <View style={styles.ribbonWrap}>
         <DayRibbon />
@@ -76,27 +98,40 @@ export default function PatientScreen({ onExit }: Props) {
 
       <Animated.View style={[styles.card, shadow.card, animatedCard]}>
         {interstitial ? (
-          <>
+          <View style={styles.cardInner}>
             <View style={[styles.emojiHalo, { backgroundColor: colors.sageTint }]}>
               <Text style={styles.emoji}>🌼</Text>
             </View>
             <Text style={styles.taskTitle}>All done!</Text>
             <Text style={styles.taskSub}>{interstitial}</Text>
-          </>
+          </View>
         ) : task ? (
           <>
-            <View style={styles.emojiHalo}>
-              <Text style={styles.emoji}>{task.emoji}</Text>
+            <View style={styles.cardInner}>
+              <View
+                style={[
+                  styles.emojiHalo,
+                  { backgroundColor: HALO_TINTS[task.id] ?? colors.mist },
+                ]}
+              >
+                <Text style={styles.emoji}>{task.emoji}</Text>
+              </View>
+              <View style={styles.timeChip}>
+                <Ionicons name="time-outline" size={15} color={colors.deep} />
+                <Text style={styles.timeChipText}>Scheduled · {task.time}</Text>
+              </View>
+              <Text style={styles.taskTitle}>{task.title}</Text>
+              <Text style={styles.taskSub}>{task.sub}</Text>
             </View>
-            <Text style={styles.taskTitle}>{task.title}</Text>
-            <Text style={styles.taskSub}>{task.sub}</Text>
-            <View style={styles.voiceRow}>
-              <Text style={styles.voiceIcon}>🔊</Text>
-              <Text style={styles.voiceHint}>{task.voiceHint}</Text>
+            <View style={styles.voiceBar}>
+              <Waveform color={colors.sky} />
+              <Text style={styles.voiceHint} numberOfLines={2}>
+                {task.voiceHint}
+              </Text>
             </View>
           </>
         ) : (
-          <>
+          <View style={styles.cardInner}>
             <View style={[styles.emojiHalo, { backgroundColor: colors.mist }]}>
               <Text style={styles.emoji}>🌙</Text>
             </View>
@@ -104,7 +139,7 @@ export default function PatientScreen({ onExit }: Props) {
             <Text style={styles.taskSub}>
               Rest well, {PATIENT_NAME}. Your family got your daily summary.
             </Text>
-          </>
+          </View>
         )}
       </Animated.View>
 
@@ -118,19 +153,23 @@ export default function PatientScreen({ onExit }: Props) {
             }}
           />
           <Pressable
-            style={styles.laterButton}
+            style={({ pressed }) => [
+              styles.laterButton,
+              pressed && { backgroundColor: colors.mist },
+            ]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
               swapCard("That's okay. I'll let Sarah know so she can help.", missTask);
             }}
           >
+            <Ionicons name="alarm-outline" size={22} color={colors.deep} />
             <Text style={styles.laterText}>Remind me later</Text>
           </Pressable>
         </>
       ) : (
-        <View style={{ height: buttonHeight + 56 }} />
+        <View style={{ height: buttonHeight * 2 + space.sm }} />
       )}
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -168,49 +207,77 @@ function SpringButton({ label, onPress }: { label: string; onPress: () => void }
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.mist,
     paddingHorizontal: space.sm,
     paddingTop: 60,
     paddingBottom: space.md,
   },
   topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  exitRow: { flexDirection: "row", alignItems: "center", width: 64 },
+  exitRow: { flexDirection: "row", alignItems: "center" },
   exitText: { fontFamily: fonts.semibold, fontSize: type.body, color: colors.soft },
-  date: { fontFamily: fonts.semibold, fontSize: type.caption, color: colors.soft },
+  progressPill: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  progressText: { fontFamily: fonts.bold, fontSize: 14, color: colors.deep },
   greeting: {
     fontFamily: fonts.display,
-    fontSize: 38,
-    lineHeight: 46,
+    fontSize: 40,
+    lineHeight: 48,
     color: colors.deep,
     textAlign: "center",
     marginTop: space.sm,
+  },
+  date: {
+    fontFamily: fonts.semibold,
+    fontSize: type.caption,
+    color: colors.soft,
+    textAlign: "center",
+    marginTop: 4,
   },
   ribbonWrap: { marginTop: space.md, marginBottom: space.xs },
   card: {
     flex: 1,
     backgroundColor: colors.cloud,
-    borderRadius: radius + 4,
+    borderRadius: radius + 8,
     marginVertical: space.sm,
-    padding: space.md,
+    overflow: "hidden",
+  },
+  cardInner: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    padding: space.md,
   },
   emojiHalo: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    backgroundColor: colors.mist,
+    width: 116,
+    height: 116,
+    borderRadius: 58,
     alignItems: "center",
     justifyContent: "center",
   },
-  emoji: { fontSize: 60 },
+  emoji: { fontSize: 62 },
+  timeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: colors.mist,
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginTop: space.sm,
+  },
+  timeChipText: { fontFamily: fonts.bold, fontSize: 13, color: colors.deep },
   taskTitle: {
     fontFamily: fonts.display,
     fontSize: type.heading,
     lineHeight: 40,
     color: colors.ink,
     textAlign: "center",
-    marginTop: space.sm,
+    marginTop: space.xs,
   },
   taskSub: {
     fontFamily: fonts.body,
@@ -220,16 +287,14 @@ const styles = StyleSheet.create({
     marginTop: space.xs,
     lineHeight: 27,
   },
-  voiceRow: {
+  voiceBar: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
     backgroundColor: colors.mist,
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginTop: space.sm,
+    paddingVertical: 14,
+    paddingHorizontal: space.sm,
   },
-  voiceIcon: { fontSize: 18, marginRight: 8 },
   voiceHint: {
     flex: 1,
     fontFamily: fonts.body,
@@ -248,11 +313,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   bigButtonText: { fontFamily: fonts.bold, fontSize: type.title, color: "#fff" },
-  laterButton: { height: 52, alignItems: "center", justifyContent: "center", marginTop: 4 },
-  laterText: {
-    fontFamily: fonts.semibold,
-    fontSize: type.body,
-    color: colors.soft,
-    textDecorationLine: "underline",
+  laterButton: {
+    height: 56,
+    borderRadius: radius,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: space.xs,
   },
+  laterText: { fontFamily: fonts.bold, fontSize: type.body, color: colors.deep },
 });

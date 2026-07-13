@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors, fonts, radius, space, type, shadow } from "./theme";
 import DayRibbon from "./DayRibbon";
+import ProgressRing from "./ProgressRing";
 import {
   FeedEvent,
   PATIENT_NAME,
@@ -21,82 +22,135 @@ import {
 
 type Props = { onExit: () => void };
 
+// Scripted week for the trend chart (Mon..Sun, today = Mon of new week)
+const WEEK = [
+  { d: "M", v: 1.0 },
+  { d: "T", v: 0.75 },
+  { d: "W", v: 1.0 },
+  { d: "T", v: 1.0 },
+  { d: "F", v: 0.5 },
+  { d: "S", v: 1.0 },
+  { d: "S", v: 0.75 },
+];
+
 export default function CaregiverScreen({ onExit }: Props) {
   const [, force] = useState(0);
   useEffect(() => subscribe(() => force((n) => n + 1)), []);
 
   const { status, feed } = getState();
   const ok = status === "ok";
+  const done = completedCount();
+  const progress = done / TASKS.length;
 
   return (
     <View style={styles.screen}>
-      <LinearGradient
-        colors={[colors.sky, "#4E90E8"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <Pressable onPress={onExit} hitSlop={16} style={styles.exitRow}>
-            <Ionicons name="chevron-back" size={22} color="#fff" />
-            <Text style={styles.exitText}>Exit</Text>
-          </Pressable>
-          <Text style={styles.appName}>DIGITALTWIN</Text>
-          <View style={styles.bell}>
-            <Ionicons name="notifications" size={17} color="#fff" />
-            {!ok && <View style={styles.bellDot} />}
-          </View>
-        </View>
-
-        <View style={styles.patientRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>M</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{PATIENT_NAME}'s Day</Text>
-            <View style={styles.subtitleRow}>
-              <Ionicons name="home" size={12} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.subtitle}>At home · Tampa, FL</Text>
-            </View>
-          </View>
-          <View style={styles.batteryCol}>
-            <BatteryGlyph level={82} />
-            <Text style={styles.batteryText}>82%</Text>
-          </View>
-        </View>
-
-        <View style={[styles.statusCard, !ok && styles.statusCardAlert]}>
-          <Text style={styles.statusIcon}>{ok ? "💙" : "⚠️"}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.statusTitle, !ok && { color: "#fff" }]}>
-              {ok ? "Mom is okay" : "Mom needs a check-in"}
-            </Text>
-            <Text style={[styles.statusSub, !ok && { color: "rgba(255,255,255,0.9)" }]}>
-              {ok
-                ? "Everything on track so far today."
-                : "A task was missed — see below."}
-            </Text>
-          </View>
-          <View style={styles.statusStats}>
-            <Text style={[styles.statusStatNum, !ok && { color: "#fff" }]}>
-              {completedCount()}/{TASKS.length}
-            </Text>
-            <Text style={[styles.statusStatLabel, !ok && { color: "rgba(255,255,255,0.9)" }]}>
-              tasks · {adherencePct()}%
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.ribbonWrap}>
-          <DayRibbon light />
-        </View>
-      </LinearGradient>
-
       <FlatList
         data={feed}
         keyExtractor={(e) => e.id}
         contentContainerStyle={styles.feed}
-        ListHeaderComponent={<Text style={styles.feedDay}>Today's timeline</Text>}
+        ListHeaderComponent={
+          <>
+            <LinearGradient
+              colors={[colors.sky, "#4E90E8"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.header}
+            >
+              <View style={styles.headerTop}>
+                <Pressable onPress={onExit} hitSlop={16} style={styles.exitRow}>
+                  <Ionicons name="chevron-back" size={22} color="#fff" />
+                  <Text style={styles.exitText}>Exit</Text>
+                </Pressable>
+                <Text style={styles.appName}>DIGITALTWIN</Text>
+                <View style={styles.bell}>
+                  <Ionicons name="notifications" size={17} color="#fff" />
+                  {!ok && <View style={styles.bellDot} />}
+                </View>
+              </View>
+
+              <View style={styles.heroRow}>
+                <ProgressRing
+                  size={116}
+                  stroke={10}
+                  progress={progress}
+                  color={ok ? "#FFFFFF" : "#FFD8CF"}
+                  track="rgba(255,255,255,0.28)"
+                >
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>M</Text>
+                  </View>
+                </ProgressRing>
+
+                <View style={styles.heroText}>
+                  <Text style={styles.title}>
+                    {ok ? "Mom is okay" : "Check on Mom"}
+                  </Text>
+                  <View style={styles.subtitleRow}>
+                    <Ionicons name="home" size={12} color="rgba(255,255,255,0.9)" />
+                    <Text style={styles.subtitle}>At home · Tampa, FL</Text>
+                  </View>
+                  <View style={styles.heroStats}>
+                    <View style={styles.heroStat}>
+                      <Text style={styles.heroStatNum}>
+                        {done}/{TASKS.length}
+                      </Text>
+                      <Text style={styles.heroStatLabel}>tasks</Text>
+                    </View>
+                    <View style={styles.heroDivider} />
+                    <View style={styles.heroStat}>
+                      <Text style={styles.heroStatNum}>{adherencePct()}%</Text>
+                      <Text style={styles.heroStatLabel}>adherence</Text>
+                    </View>
+                    <View style={styles.heroDivider} />
+                    <View style={styles.heroStat}>
+                      <BatteryGlyph level={82} />
+                      <Text style={styles.heroStatLabel}>device</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.ribbonWrap}>
+                <DayRibbon light />
+              </View>
+
+              <View style={styles.quickRow}>
+                <QuickAction icon="call" label="Call Mom" />
+                <QuickAction icon="chatbubble" label="Message" />
+                <QuickAction icon="mic" label="Talk to twin" />
+                <QuickAction icon="calendar" label="Routine" />
+              </View>
+            </LinearGradient>
+
+            <View style={[styles.weekCard, shadow.card]}>
+              <View style={styles.weekHeader}>
+                <Text style={styles.weekTitle}>This week</Text>
+                <Text style={styles.weekMeta}>86% of tasks completed</Text>
+              </View>
+              <View style={styles.weekBars}>
+                {WEEK.map((day, i) => (
+                  <View key={i} style={styles.weekCol}>
+                    <View style={styles.weekTrack}>
+                      <View
+                        style={[
+                          styles.weekFill,
+                          {
+                            height: `${day.v * 100}%`,
+                            backgroundColor:
+                              day.v >= 1 ? colors.sage : day.v >= 0.7 ? colors.sky : colors.gold,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.weekDay}>{day.d}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <Text style={styles.feedDay}>Today's timeline</Text>
+          </>
+        }
         renderItem={({ item, index }) => (
           <FeedRow event={item} isLast={index === feed.length - 1} />
         )}
@@ -105,12 +159,32 @@ export default function CaregiverScreen({ onExit }: Props) {
   );
 }
 
+function QuickAction({
+  icon,
+  label,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.quick, pressed && { opacity: 0.7 }]}
+      onPress={() => Haptics.selectionAsync()}
+    >
+      <View style={styles.quickIcon}>
+        <Ionicons name={icon} size={20} color="#fff" />
+      </View>
+      <Text style={styles.quickLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
 // Battery as a safety signal (pattern borrowed from Life360's member rows):
 // caregivers need to know Mom's device is alive, not just her tasks.
 function BatteryGlyph({ level }: { level: number }) {
   const color = level <= 20 ? colors.ember : "#fff";
   return (
-    <View style={{ flexDirection: "row", alignItems: "center" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", height: 26 }}>
       <View style={[styles.batteryBody, { borderColor: color }]}>
         <View
           style={{
@@ -122,6 +196,7 @@ function BatteryGlyph({ level }: { level: number }) {
         />
       </View>
       <View style={[styles.batteryTip, { backgroundColor: color }]} />
+      <Text style={styles.batteryPct}> {level}%</Text>
     </View>
   );
 }
@@ -177,6 +252,8 @@ const styles = StyleSheet.create({
     paddingBottom: space.md,
     borderBottomLeftRadius: radius + 8,
     borderBottomRightRadius: radius + 8,
+    marginHorizontal: -space.sm,
+    marginTop: -space.sm,
   },
   headerTop: {
     flexDirection: "row",
@@ -210,23 +287,17 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#fff",
   },
-  patientRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: space.sm,
-  },
+  heroRow: { flexDirection: "row", alignItems: "center", marginTop: space.sm },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     backgroundColor: "rgba(255,255,255,0.3)",
-    borderWidth: 2,
-    borderColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
-  avatarText: { fontFamily: fonts.display, fontSize: 26, color: "#fff" },
+  avatarText: { fontFamily: fonts.display, fontSize: 38, color: "#fff" },
+  heroText: { flex: 1, marginLeft: space.sm },
   title: { fontFamily: fonts.display, fontSize: 28, color: "#fff" },
   subtitleRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
   subtitle: {
@@ -234,7 +305,71 @@ const styles = StyleSheet.create({
     fontSize: type.caption,
     color: "rgba(255,255,255,0.9)",
   },
-  batteryCol: { alignItems: "center", gap: 2, marginLeft: 8 },
+  heroStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: space.xs,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: "flex-start",
+  },
+  heroStat: { alignItems: "center" },
+  heroStatNum: { fontFamily: fonts.bold, fontSize: 17, color: "#fff", height: 26, textAlignVertical: "center" },
+  heroStatLabel: { fontFamily: fonts.semibold, fontSize: 11, color: "rgba(255,255,255,0.9)" },
+  heroDivider: {
+    width: 1,
+    height: 26,
+    backgroundColor: "rgba(255,255,255,0.35)",
+    marginHorizontal: 12,
+  },
+  ribbonWrap: { marginTop: space.sm },
+  quickRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: space.sm,
+    paddingHorizontal: 4,
+  },
+  quick: { alignItems: "center", width: 76 },
+  quickIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickLabel: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+    color: "#fff",
+    marginTop: 5,
+    textAlign: "center",
+  },
+  weekCard: {
+    backgroundColor: colors.cloud,
+    borderRadius: radius - 4,
+    padding: space.sm,
+    marginTop: space.sm,
+  },
+  weekHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  weekTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.ink },
+  weekMeta: { fontFamily: fonts.semibold, fontSize: 13, color: colors.soft },
+  weekBars: { flexDirection: "row", justifyContent: "space-between", marginTop: space.sm },
+  weekCol: { alignItems: "center", flex: 1 },
+  weekTrack: {
+    width: 14,
+    height: 64,
+    borderRadius: 7,
+    backgroundColor: colors.mist,
+    overflow: "hidden",
+    justifyContent: "flex-end",
+  },
+  weekFill: { width: "100%", borderRadius: 7 },
+  weekDay: { fontFamily: fonts.semibold, fontSize: 12, color: colors.soft, marginTop: 5 },
   batteryBody: {
     width: 24,
     height: 12,
@@ -244,35 +379,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   batteryTip: { width: 2, height: 5, borderRadius: 1, marginLeft: 1 },
-  batteryText: { fontFamily: fonts.semibold, fontSize: 12, color: "#fff" },
-  statusCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.cloud,
-    borderRadius: radius - 4,
-    padding: space.sm,
-    marginTop: space.sm,
-  },
-  statusCardAlert: { backgroundColor: colors.ember },
-  statusIcon: { fontSize: 28, marginRight: 12 },
-  statusTitle: { fontFamily: fonts.bold, fontSize: 20, color: colors.ink },
-  statusSub: {
-    fontFamily: fonts.body,
-    fontSize: type.caption,
-    color: colors.soft,
-    marginTop: 2,
-  },
-  statusStats: { alignItems: "flex-end", marginLeft: 8 },
-  statusStatNum: { fontFamily: fonts.bold, fontSize: 22, color: colors.deep },
-  statusStatLabel: { fontFamily: fonts.semibold, fontSize: 12, color: colors.soft },
-  ribbonWrap: { marginTop: space.sm },
-  feed: { padding: space.sm, paddingBottom: space.lg },
+  batteryPct: { fontFamily: fonts.bold, fontSize: 13, color: "#fff" },
+  feed: { padding: space.sm, paddingBottom: space.lg, paddingTop: space.sm },
   feedDay: {
     fontFamily: fonts.bold,
     fontSize: type.caption,
     color: colors.soft,
     letterSpacing: 1.5,
     textTransform: "uppercase",
+    marginTop: space.md,
     marginBottom: space.xs,
     marginLeft: 30,
   },
